@@ -1,0 +1,74 @@
+{
+  "welcome": {
+    "other": "👋 Hello! I'm your AI assistant.\n\nI can answer questions, provide help, and have conversations.\n\nClick the buttons below to get started!"
+  },
+  "help": {
+    "other": "📚 **Help**\n\n**Available Commands:**\n• /start - Start using the bot\n• /help - Show help\n• /models - Select AI model\n• /settings - Configure language\n• /clear - Clear conversation history\n• /stats - View statistics\n\n**How to Use:**\n• Send messages directly to chat\n• @mention me or reply to my messages in groups\n• Use the button menu for quick actions"
+  },
+  "model_changed": {
+    "other": "✅ Switched to model: **{{.Model}}**"
+  },
+  "model_invalid": {
+    "other": "❌ Invalid model name.\n**Available models:** {{.Models}}"
+  },
+  "current_model": {
+    "other": "🤖 **Current Model:** {{.Model}}\n\nSelect a model:"
+  },
+  "context_cleared": {
+    "other": "✅ Conversation history cleared"
+  },
+  "settings": {
+    "other": "⚙️ **Settings**\n\n**Current Language:** {{.Language}}"
+  },
+  "stats": {
+    "other": "📊 **Statistics**\n\n• Total Messages: {{.Messages}}\n• Total Sessions: {{.Sessions}}"
+  },
+  "unknown_command": {
+    "other": "❓ Unknown command. Use /help to see available commands."
+  },
+  "rate_limit_exceeded": {
+    "other": "⚠️ You're sending too many requests. Please try again later."
+  },
+  "error": {
+    "other": "❌ An error occurred. Please try again later."
+  },
+  "processing": {
+    "other": "🤔 Thinking..."
+  },
+  "button.models": {
+    "other": "Models"
+  },
+  "button.settings": {
+    "other": "Settings"
+  },
+  "button.clear": {
+    "other": "Clear Chat"
+  },
+  "button.stats": {
+    "other": "Statistics"
+  },
+  "button.back": {
+    "other": "Back"
+  },
+  "language.name": {
+    "other": "English"
+  },
+  "success.model_changed": {
+    "other": "Model changed"
+  },
+  "success.language_changed": {
+    "other": "Language changed"
+  },
+  "success.context_cleared": {
+    "other": "Cleared"
+  },
+  "error.model_not_found": {
+    "other": "Model not found"
+  },
+  "error.save_failed": {
+    "other": "Failed to save"
+  },
+  "error.clear_failed": {
+    "other": "Failed to clear"
+  }
+}

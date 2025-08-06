@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  bot:
+    build: .
+    image: cf-ai-tgbot-go:latest
+    container_name: cf-ai-tgbot-go
+    restart: unless-stopped
+    environment:
+      - BOT_TOKEN=${BOT_TOKEN}
+      # Redis配置 - 支持外部Redis
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - REDIS_DB=${REDIS_DB:-0}
+      # 自定义AI端点配置
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - CUSTOM_API_URL=${CUSTOM_API_URL:-}
+      - CUSTOM_API_KEY=${CUSTOM_API_KEY:-}
+      - CUSTOM_ENDPOINTS=${CUSTOM_ENDPOINTS:-}
+      - GEMINI_BASE_URL=${GEMINI_BASE_URL:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GEMINI_MODELS=${GEMINI_MODELS:-}
+    volumes:
+      - ./configs:/configs
+      - ./logs:/var/log/cf-ai-tgbot
+      - ./.env:/.env
+      - ./knowledge:/knowledge
+    networks:
+      - bot-network
+      - 1panel-network
+    # 如果使用外部Redis，可以注释掉depends_on
+    # depends_on:
+    #   - redis
+
+  # 内置Redis服务 - 如果使用外部Redis可以注释掉整个redis服务
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: cf-ai-tgbot-redis
+  #   restart: unless-stopped
+  #   command: redis-server --appendonly yes
+  #   volumes:
+  #     - redis-data:/data
+  #   networks:
+  #     - bot-network
+
+
+volumes: {}
+
+networks:
+  bot-network:
+    driver: bridge
+  1panel-network:
+    external: true

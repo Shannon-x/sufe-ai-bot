@@ -1,0 +1,101 @@
+# Telegram Bot Configuration
+bot:
+  token: ${BOT_TOKEN}
+  webhook:
+    enabled: false
+    url: ""
+    port: 8443
+  update_timeout: 60
+
+# AI Models Configuration
+models:
+  default: "gemini-2.5-flash"
+  endpoints:
+    - name: "openai"
+      display_name: "OpenAI"
+      base_url: "https://api.openai.com/v1"
+      api_key: ${OPENAI_API_KEY}
+      models:
+        - id: "gpt-3.5-turbo"
+          name: "GPT-3.5 Turbo"
+          max_tokens: 4096
+        - id: "gpt-4"
+          name: "GPT-4"
+          max_tokens: 8192
+    
+    - name: "custom"
+      display_name: "Custom API"
+      base_url: ${CUSTOM_API_URL:http://localhost:8080/v1}
+      api_key: ${CUSTOM_API_KEY}
+      models:
+        - id: "custom-model"
+          name: "Custom Model"
+          max_tokens: 4096
+
+# Storage Configuration
+storage:
+  type: "redis" # options: memory, redis
+  redis:
+    addr: "${REDIS_HOST:localhost}:${REDIS_PORT:6379}"
+    password: "${REDIS_PASSWORD:}"
+    db: 0
+  memory:
+    default_expiration: 24h
+    cleanup_interval: 1h
+
+# Cache Configuration
+cache:
+  enabled: true
+  ttl: 1h
+  max_size: 1000
+
+# Rate Limiting Configuration
+rate_limit:
+  enabled: true
+  requests_per_minute: 30
+  burst: 50
+
+# Context Configuration
+context:
+  max_messages: 12
+  default_system_prompt: |
+    你是一个乐于助人、知识渊博的 AI 助手。你的回答应该清晰、简洁，并始终保持友好。
+    请使用中文回答，并适当使用 Markdown 语法来增强可读性。
+  default_mention_words:
+    - "小菲"
+    - "小菲ai"
+    - "小菲AI"
+    - "ai"
+    - "AI"
+  # 机器人性格设置: cute(可爱), professional(专业), humorous(幽默), warm(温暖)
+  bot_personality: "cute"
+
+# Logging Configuration
+logging:
+  level: "debug" # debug, info, warn, error
+  format: "json" # json, text
+  output: "stdout" # stdout, file
+  file:
+    path: "/var/log/cf-ai-tgbot/bot.log"
+    max_size: 100 # MB
+    max_backups: 3
+    max_age: 7 # days
+
+# Monitoring Configuration
+monitoring:
+  metrics:
+    enabled: true
+    port: 9090
+    path: "/metrics"
+
+# i18n Configuration
+i18n:
+  default_language: "zh-CN"
+  languages:
+    - "zh-CN"
+    - "en-US"
+
+# Knowledge Base Configuration
+knowledge:
+  enabled: true
+  directory: "./knowledge"
