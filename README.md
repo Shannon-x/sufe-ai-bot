@@ -1,6 +1,6 @@
-# CF-AI-TGBot-Go
+# SUFE AI Telegram Bot
 
-高性能的 Telegram AI 机器人，基于 Go 语言开发，集成 Cloudflare AI Gateway，支持多模型切换、上下文记忆、速率限制和全面的监控体系。
+高性能的 Telegram AI 机器人，基于 Go 语言开发，支持自定义 AI 端点（OpenAI、Gemini、本地模型等），具备多模型切换、上下文记忆、知识库检索、速率限制和全面的监控体系。
 
 ## 📋 目录
 
@@ -33,11 +33,13 @@
 - **内存优化**: 自动清理机制，防止内存泄漏
 
 ### 功能特性
-- **多模型支持**: 支持 LLaMA、Mistral、Qwen 等多种 AI 模型
+- **自定义AI端点**: 支持配置任意 OpenAI 兼容的 API 端点（OpenAI、Gemini、本地模型等）
+- **多模型管理**: 可同时配置多个端点和模型，灵活切换使用
+- **知识库检索**: 内置向量数据库，支持上传文档并智能检索相关内容
 - **上下文记忆**: 保持对话连贯性，支持多轮对话
 - **多语言界面**: 内置中英文支持，易于扩展其他语言
 - **灵活触发**: @提及、回复、关键词等多种触发方式
-- **个性化设置**: 每个聊天独立的模型、背景设定等
+- **个性化设置**: 每个聊天独立的模型、背景设定、提及词等
 
 ### 安全与监控
 - **速率限制**: 防止 API 滥用，支持用户级别限流
@@ -61,8 +63,8 @@
 
 1. **克隆项目**
 ```bash
-git clone https://github.com/yourusername/cf-ai-tgbot-go.git
-cd cf-ai-tgbot-go
+git clone https://github.com/Shannon-x/sufe-ai-bot.git
+cd sufe-ai-bot
 ```
 
 2. **配置环境变量**
@@ -130,15 +132,16 @@ go build -o bot cmd/bot/main.go
 # Telegram 机器人配置
 BOT_TOKEN=your_bot_token_here
 
-# Cloudflare AI Gateway 配置
-CLOUDFLARE_API_TOKEN=your_cloudflare_api_token
-CLOUDFLARE_ACCOUNT_ID=your_cloudflare_account_id
-CLOUDFLARE_GATEWAY_NAME=your_gateway_name
+# AI 端点配置（可选，如果不配置将使用 config.yaml 中的默认值）
+OPENAI_API_KEY=your_openai_api_key      # OpenAI API 密钥
+CUSTOM_API_URL=http://localhost:8080/v1  # 自定义 API 端点地址
+CUSTOM_API_KEY=your_custom_api_key      # 自定义 API 密钥
 
-# 可选：Redis 配置（如果使用外部 Redis）
+# Redis 配置（如果使用外部 Redis）
 REDIS_HOST=localhost
 REDIS_PORT=6379
 REDIS_PASSWORD=
+REDIS_DB=0
 ```
 
 ### 主配置文件 (config.yaml)
@@ -155,11 +158,28 @@ bot:
 
 # AI 模型配置
 models:
-  default: "llama3"
-  allowed:
-    llama3: "workers-ai/@cf/meta/llama-3-8b-instruct"
-    mistral: "workers-ai/@cf/mistral/mistral-7b-instruct-v0.1"
-    qwq-32b: "workers-ai/@cf/qwen/qwq-32b"
+  default: "gemini-2.5-flash"  # 默认使用的模型ID
+  endpoints:
+    - name: "openai"
+      display_name: "OpenAI"
+      base_url: "https://api.openai.com/v1"
+      api_key: ${OPENAI_API_KEY}
+      models:
+        - id: "gpt-3.5-turbo"
+          name: "GPT-3.5 Turbo"
+          max_tokens: 4096
+        - id: "gpt-4"
+          name: "GPT-4"
+          max_tokens: 8192
+    
+    - name: "custom"
+      display_name: "自定义端点"
+      base_url: ${CUSTOM_API_URL:http://localhost:8080/v1}
+      api_key: ${CUSTOM_API_KEY}
+      models:
+        - id: "custom-model"
+          name: "自定义模型"
+          max_tokens: 4096
 
 # 存储配置
 storage:
@@ -421,35 +441,123 @@ groups:
           summary: "Memory usage exceeds 1GB"
 ```
 
+## 🔧 自定义模型配置
+
+### 配置新的 AI 端点
+
+1. **编辑 config.yaml 文件**：
+```yaml
+models:
+  endpoints:
+    - name: "my-custom-endpoint"
+      display_name: "我的自定义端点"
+      base_url: "https://api.example.com/v1"  # 必须兼容 OpenAI API 格式
+      api_key: "${MY_CUSTOM_API_KEY}"         # 使用环境变量
+      models:
+        - id: "model-1"
+          name: "模型 1"
+          max_tokens: 4096
+        - id: "model-2"
+          name: "模型 2"
+          max_tokens: 8192
+```
+
+2. **设置环境变量**：
+```bash
+# 在 .env 文件中添加
+MY_CUSTOM_API_KEY=your_api_key_here
+```
+
+3. **支持的 API 类型**：
+   - OpenAI API
+   - Google Gemini API
+   - Anthropic Claude API
+   - 本地模型（Ollama、LocalAI 等）
+   - 任何兼容 OpenAI Chat Completions API 的服务
+
+### 常见配置示例
+
+**Ollama 本地模型**：
+```yaml
+- name: "ollama"
+  display_name: "Ollama 本地模型"
+  base_url: "http://localhost:11434/v1"
+  api_key: "ollama"  # Ollama 不需要真实的 API key
+  models:
+    - id: "llama3.2"
+      name: "Llama 3.2"
+      max_tokens: 4096
+```
+
+**Google Gemini**：
+```yaml
+- name: "gemini"
+  display_name: "Google Gemini"
+  base_url: "https://generativelanguage.googleapis.com/v1beta"
+  api_key: "${GEMINI_API_KEY}"
+  models:
+    - id: "gemini-2.5-flash"
+      name: "Gemini 2.5 Flash"
+      max_tokens: 8192
+```
+
+## 📖 知识库功能
+
+### 启用知识库
+
+1. **配置知识库目录**：
+```yaml
+knowledge:
+  enabled: true
+  directory: "./knowledge"  # 知识库文件存放目录
+```
+
+2. **添加知识文档**：
+   - 将 Markdown 文件放入 `knowledge` 目录
+   - 支持 `.md` 和 `.txt` 格式
+   - 机器人会自动索引这些文档
+
+3. **使用知识库**：
+   - 机器人会自动根据用户问题检索相关知识
+   - 使用 `/knowledge` 命令查看知识库状态
+
+### 知识文档格式
+
+```markdown
+# 文档标题
+
+## 章节 1
+内容...
+
+## 章节 2
+内容...
+```
+
+机器人会智能分割文档并建立索引，在回答时引用相关内容。
+
 ## 💬 命令列表
 
 ### 基础命令
 - `/start` - 开始使用机器人
 - `/help` - 显示帮助信息
 - `/clear` - 清空当前对话记忆
-- `/reset` - 重置所有设置到默认值
+- `/models` - 查看和切换 AI 模型
+- `/settings` - 设置语言和提及词
+- `/stats` - 查看使用统计
+- `/knowledge` - 知识库管理
 
-### 设置命令
-- `/setmodel [模型名]` - 切换 AI 模型
-- `/background [描述]` - 设置 AI 背景/人格
-- `/showthink [on/off]` - 显示/隐藏思考过程
-- `/notice [关键词...]` - 设置自动回复关键词
+### 群组功能
+- **@提及**: 在群组中 @机器人并附加消息
+- **回复消息**: 回复机器人的消息继续对话
+- **关键词触发**: 消息包含设置的提及词时自动回复
 
-### 命令示例
+### 提及词管理
+通过 `/settings` 命令进入设置菜单，选择"💬 提及词管理"：
+- 添加新的提及词
+- 删除现有提及词
+- 重置为默认值
 
-```bash
-# 切换模型
-/setmodel mistral
-
-# 设置背景
-/background 你是一个专业的技术顾问，请用简洁专业的语言回答问题
-
-# 设置关键词
-/notice 帮助 问题 请问
-
-# 关闭关键词
-/notice off
-```
+默认提及词：小菲、小菲ai、小菲AI、ai、AI
 
 ## 🔧 开发指南
 
@@ -457,8 +565,8 @@ groups:
 
 ```bash
 # 克隆项目
-git clone https://github.com/yourusername/cf-ai-tgbot-go.git
-cd cf-ai-tgbot-go
+git clone https://github.com/Shannon-x/sufe-ai-bot.git
+cd sufe-ai-bot
 
 # 安装依赖
 go mod download
@@ -476,17 +584,21 @@ go build -o bot cmd/bot/main.go
 ### 项目结构
 
 ```
-cf-ai-tgbot-go/
+sufe-ai-bot/
 ├── cmd/bot/              # 程序入口
 ├── internal/             # 内部包（不对外暴露）
 │   ├── config/          # 配置管理
 │   ├── handlers/        # 请求处理器
 │   │   ├── command.go   # 命令处理
-│   │   └── message.go   # 消息处理
+│   │   ├── message.go   # 消息处理
+│   │   ├── knowledge.go # 知识库处理
+│   │   └── mention.go   # 提及词处理
 │   ├── services/        # 业务服务
 │   │   ├── ai/         # AI 接口服务
+│   │   │   └── custom.go # 自定义 AI 端点
 │   │   ├── cache/      # 缓存服务
-│   │   └── storage/    # 存储服务
+│   │   ├── storage/    # 存储服务
+│   │   └── knowledge/  # 知识库服务
 │   ├── middleware/      # 中间件
 │   │   ├── metrics.go  # 监控指标
 │   │   └── ratelimit.go # 速率限制
@@ -496,6 +608,7 @@ cf-ai-tgbot-go/
 │   ├── logger/         # 日志工具
 │   └── markdown/       # Markdown 转换
 ├── configs/            # 配置文件
+├── knowledge/          # 知识库文件
 ├── scripts/            # 脚本工具
 ├── docs/               # 文档
 └── tests/              # 测试文件
@@ -508,9 +621,10 @@ cf-ai-tgbot-go/
    - 更新帮助文本
    - 添加相应的 i18n 翻译
 
-2. **添加新的 AI 模型**：
+2. **添加新的 AI 端点**：
    - 编辑 `configs/config.yaml`
-   - 在 `models.allowed` 中添加模型配置
+   - 在 `models.endpoints` 中添加端点配置
+   - 设置对应的环境变量
 
 3. **添加新语言**：
    - 创建 `configs/i18n/[lang].json`
