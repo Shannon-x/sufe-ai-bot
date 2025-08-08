@@ -46,6 +46,7 @@ type Storage interface {
 type Manager struct {
 	storage Storage
 	logger  *logrus.Logger
+	redisClient *redis.Client // Store redis client reference
 }
 
 // NewManager creates a new storage manager
@@ -53,23 +54,29 @@ func NewManager(cfg *config.Config, logger *logrus.Logger) (*Manager, error) {
 	var storage Storage
 	var err error
 
+	manager := &Manager{
+		storage: storage,
+		logger:  logger,
+	}
+	
 	switch cfg.Storage.Type {
 	case "redis":
-		storage, err = NewRedisStorage(cfg, logger)
+		redisStorage, err := NewRedisStorage(cfg, logger)
+		if err != nil {
+			return nil, err
+		}
+		storage = redisStorage
+		// Store redis client reference
+		if rs, ok := redisStorage.(*RedisStorage); ok {
+			manager.redisClient = rs.client
+		}
 	case "memory":
 		storage = NewMemoryStorage(cfg, logger)
 	default:
 		return nil, fmt.Errorf("unsupported storage type: %s", cfg.Storage.Type)
 	}
 
-	if err != nil {
-		return nil, err
-	}
-
-	manager := &Manager{
-		storage: storage,
-		logger:  logger,
-	}
+	manager.storage = storage
 
 	// Start cleanup goroutine
 	go manager.startCleanup(cfg.Storage.Memory.CleanupInterval, cfg.Storage.Memory.DefaultExpiration)
@@ -141,6 +148,11 @@ func (m *Manager) SetUserState(ctx context.Context, userID int64, key string, va
 
 func (m *Manager) DeleteUserState(ctx context.Context, userID int64, key string) error {
 	return m.storage.DeleteUserState(ctx, userID, key)
+}
+
+// GetRedisClient returns the Redis client if available
+func (m *Manager) GetRedisClient() *redis.Client {
+	return m.redisClient
 }
 
 // RedisStorage implements storage using Redis

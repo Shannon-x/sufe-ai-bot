@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/cf-ai-tgbot-go/internal/middleware"
 	"github.com/cf-ai-tgbot-go/internal/services/ai"
 	"github.com/cf-ai-tgbot-go/internal/services/cache"
+	dynamicconfig "github.com/cf-ai-tgbot-go/internal/services/config"
 	"github.com/cf-ai-tgbot-go/internal/services/knowledge"
 	"github.com/cf-ai-tgbot-go/internal/services/storage"
 	"github.com/cf-ai-tgbot-go/pkg/logger"
@@ -73,8 +75,16 @@ func main() {
 		log.WithError(err).Fatal("Failed to initialize storage")
 	}
 
-	// Initialize AI service
-	aiService := ai.NewCustomAI(&cfg.Models, log)
+	// Initialize dynamic config service
+	redisClient := storageManager.GetRedisClient()
+	if redisClient == nil {
+		log.Fatal("Dynamic configuration requires Redis storage")
+	}
+	
+	dynamicConfigService := dynamicconfig.NewDynamicConfigService(redisClient, cfg, log)
+
+	// Initialize AI service with dynamic config
+	aiService := ai.NewDynamicAI(dynamicConfigService, log)
 
 	// Initialize knowledge service
 	var knowledgeService knowledge.Service
@@ -118,6 +128,14 @@ func main() {
 			}
 		}()
 	}
+
+	// Initialize config handler
+	configHandler := handlers.NewConfigHandler(
+		bot,
+		dynamicConfigService,
+		storageManager,
+		log,
+	)
 
 	// Initialize handlers
 	commandHandler := handlers.NewCommandHandler(
@@ -179,8 +197,15 @@ func main() {
 		for update := range updates {
 			// Handle callback queries
 			if update.CallbackQuery != nil {
-				if err := commandHandler.HandleCallbackQuery(ctx, update.CallbackQuery); err != nil {
-					log.WithError(err).Error("Failed to handle callback query")
+				// Check if it's a config-related callback
+				if strings.HasPrefix(update.CallbackQuery.Data, "config:") {
+					if err := configHandler.HandleConfigCallback(ctx, update.CallbackQuery); err != nil {
+						log.WithError(err).Error("Failed to handle config callback")
+					}
+				} else {
+					if err := commandHandler.HandleCallbackQuery(ctx, update.CallbackQuery); err != nil {
+						log.WithError(err).Error("Failed to handle callback query")
+					}
 				}
 				continue
 			}
@@ -211,6 +236,12 @@ func main() {
 			}
 
 			// Handle regular messages
+			// First check if user is in config mode
+			if err := configHandler.HandleConfigInput(ctx, update.Message); err != nil {
+				log.WithError(err).Error("Failed to handle config input")
+			}
+			
+			// Then handle as regular message
 			if err := messageHandler.HandleMessage(ctx, &update); err != nil {
 				log.WithError(err).Error("Failed to handle message")
 				metrics.RecordMessageProcessed("error")

@@ -547,7 +547,7 @@ func (h *CommandHandler) createModelSelectionKeyboard(currentModelID string) tgb
 	
 	// Add custom model configuration button
 	rows = append(rows, tgbotapi.NewInlineKeyboardRow(
-		tgbotapi.NewInlineKeyboardButtonData("⚙️ 配置自定义模型", "custom_model:config"),
+		tgbotapi.NewInlineKeyboardButtonData("⚙️ 配置自定义模型", "config:add_endpoint"),
 	))
 	
 	// Add back button
