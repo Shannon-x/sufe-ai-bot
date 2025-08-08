@@ -3,8 +3,8 @@ version: '3.8'
 services:
   bot:
     build: .
-    image: cf-ai-tgbot-go:latest
-    container_name: cf-ai-tgbot-go
+    image: sufe-ai-bot:latest
+    container_name: sufe-ai-bot
     restart: unless-stopped
     environment:
       - BOT_TOKEN=${BOT_TOKEN}

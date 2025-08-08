@@ -52,8 +52,7 @@ type Manager struct {
 // NewManager creates a new storage manager
 func NewManager(cfg *config.Config, logger *logrus.Logger) (*Manager, error) {
 	var storage Storage
-	var err error
-
+	
 	manager := &Manager{
 		storage: storage,
 		logger:  logger,
@@ -67,9 +66,7 @@ func NewManager(cfg *config.Config, logger *logrus.Logger) (*Manager, error) {
 		}
 		storage = redisStorage
 		// Store redis client reference
-		if rs, ok := redisStorage.(*RedisStorage); ok {
-			manager.redisClient = rs.client
-		}
+		manager.redisClient = redisStorage.client
 	case "memory":
 		storage = NewMemoryStorage(cfg, logger)
 	default:

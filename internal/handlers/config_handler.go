@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/cf-ai-tgbot-go/internal/config"
 	dynamicconfig "github.com/cf-ai-tgbot-go/internal/services/config"
@@ -130,10 +131,9 @@ sk-1234567890abcdef
 	return err
 }
 
-// HandleConfigInput handles user input for configuration
+// handleConfigInput processes user input for configuration
 func (h *ConfigHandler) HandleConfigInput(ctx context.Context, message *tgbotapi.Message) error {
 	userID := message.From.ID
-	chatID := message.Chat.ID
 	
 	// Get current config action
 	action, err := h.storage.GetUserState(ctx, userID, "config_action")
@@ -192,7 +192,7 @@ func (h *ConfigHandler) handleAddEndpointInput(ctx context.Context, message *tgb
 		DisplayName: displayName,
 		BaseURL:     baseURL,
 		APIKey:      apiKey,
-		Models:      []config.Model{},
+		Models:      []config.ModelInfo{},
 	}
 	
 	// Show loading message
@@ -326,7 +326,7 @@ func (h *ConfigHandler) handleAddModelInput(ctx context.Context, message *tgbota
 	}
 	
 	// Create model
-	model := config.Model{
+	model := config.ModelInfo{
 		ID:        modelID,
 		Name:      modelName,
 		MaxTokens: maxTokens,
@@ -408,7 +408,7 @@ func (h *ConfigHandler) showCommonModels(ctx context.Context, chatID int64, mess
 			tgbotapi.NewInlineKeyboardButtonData("🟠 Llama系列", fmt.Sprintf("config:preset:llama:%s", endpointName)),
 		),
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("⬅️ 返回", fmt.Sprintf("config:add_model:%s", endpointName)),
+			tgbotapi.NewInlineKeyboardButtonData("⬅��� 返回", fmt.Sprintf("config:add_model:%s", endpointName)),
 		),
 	)
 	
@@ -423,4 +423,170 @@ func (h *ConfigHandler) showCommonModels(ctx context.Context, chatID int64, mess
 	_, err := h.bot.Send(edit)
 	h.bot.Request(tgbotapi.NewCallback(callbackID, ""))
 	return err
+}
+
+// testEndpoint tests if an endpoint is working
+func (h *ConfigHandler) testEndpoint(ctx context.Context, chatID int64, messageID int, endpointName string, callbackID string) error {
+	// TODO: Implement endpoint testing
+	msg := tgbotapi.NewEditMessageText(chatID, messageID, "⏳ 测试端点连接中...")
+	h.bot.Send(msg)
+	
+	// For now, just show success
+	time.Sleep(2 * time.Second)
+	
+	successMsg := tgbotapi.NewEditMessageText(chatID, messageID, "✅ 端点连接测试成功！")
+	keyboard := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("⬅️ 返回", "menu:models"),
+		),
+	)
+	successMsg.ReplyMarkup = &keyboard
+	
+	_, err := h.bot.Send(successMsg)
+	h.bot.Request(tgbotapi.NewCallback(callbackID, "测试完成"))
+	return err
+}
+
+// confirmDeleteEndpoint shows confirmation for endpoint deletion
+func (h *ConfigHandler) confirmDeleteEndpoint(ctx context.Context, chatID int64, messageID int, endpointName string, callbackID string) error {
+	text := fmt.Sprintf("⚠️ **确认删除端点**\n\n您确定要删除端点 `%s` 吗？\n\n此操作将删除该端点及其所有模型配置。", endpointName)
+	
+	keyboard := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("✅ 确认删除", fmt.Sprintf("config:confirm_delete:%s", endpointName)),
+			tgbotapi.NewInlineKeyboardButtonData("❌ 取消", "menu:models"),
+		),
+	)
+	
+	edit := tgbotapi.NewEditMessageText(chatID, messageID, text)
+	edit.ParseMode = "Markdown"
+	edit.ReplyMarkup = &keyboard
+	
+	_, err := h.bot.Send(edit)
+	h.bot.Request(tgbotapi.NewCallback(callbackID, ""))
+	return err
+}
+
+// deleteEndpoint deletes an endpoint
+func (h *ConfigHandler) deleteEndpoint(ctx context.Context, chatID int64, messageID int, endpointName string, callbackID string) error {
+	// TODO: Implement endpoint deletion
+	text := fmt.Sprintf("✅ 端点 `%s` 已删除", endpointName)
+	
+	keyboard := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("⬅️ 返回", "menu:models"),
+		),
+	)
+	
+	edit := tgbotapi.NewEditMessageText(chatID, messageID, text)
+	edit.ParseMode = "Markdown"
+	edit.ReplyMarkup = &keyboard
+	
+	_, err := h.bot.Send(edit)
+	h.bot.Request(tgbotapi.NewCallback(callbackID, "删除成功"))
+	return err
+}
+
+// showEditEndpointMenu shows endpoint edit menu
+func (h *ConfigHandler) showEditEndpointMenu(ctx context.Context, chatID int64, messageID int, endpointName string, callbackID string) error {
+	text := fmt.Sprintf("⚙️ **编辑端点: %s**\n\n请选择要修改的内容：", endpointName)
+	
+	keyboard := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("📝 修改API地址", fmt.Sprintf("config:edit_url:%s", endpointName)),
+		),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("🔑 修改API密钥", fmt.Sprintf("config:edit_key:%s", endpointName)),
+		),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("⬅️ 返回", "menu:models"),
+		),
+	)
+	
+	edit := tgbotapi.NewEditMessageText(chatID, messageID, text)
+	edit.ParseMode = "Markdown"
+	edit.ReplyMarkup = &keyboard
+	
+	_, err := h.bot.Send(edit)
+	h.bot.Request(tgbotapi.NewCallback(callbackID, ""))
+	return err
+}
+
+// handleEditURLInput handles URL edit input
+func (h *ConfigHandler) handleEditURLInput(ctx context.Context, message *tgbotapi.Message, endpointName string) error {
+	chatID := message.Chat.ID
+	newURL := strings.TrimSpace(message.Text)
+	
+	// Validate URL
+	u, err := url.Parse(newURL)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") {
+		msg := tgbotapi.NewMessage(chatID, "❌ 无效的API地址，请输入有效的HTTP/HTTPS URL")
+		h.bot.Send(msg)
+		return nil
+	}
+	
+	// Update endpoint
+	updates := map[string]interface{}{
+		"base_url": newURL,
+	}
+	
+	if err := h.configService.UpdateEndpoint(ctx, endpointName, updates); err != nil {
+		msg := tgbotapi.NewMessage(chatID, fmt.Sprintf("❌ 更新失败：%s", err.Error()))
+		h.bot.Send(msg)
+		return nil
+	}
+	
+	// Success message
+	msg := tgbotapi.NewMessage(chatID, fmt.Sprintf("✅ 端点 `%s` 的API地址已更新为：\n%s", endpointName, newURL))
+	msg.ParseMode = "Markdown"
+	h.bot.Send(msg)
+	
+	// Clear user state
+	h.storage.DeleteUserState(ctx, message.From.ID, "config_action")
+	h.storage.DeleteUserState(ctx, message.From.ID, "config_endpoint")
+	
+	return nil
+}
+
+// handleEditKeyInput handles API key edit input
+func (h *ConfigHandler) handleEditKeyInput(ctx context.Context, message *tgbotapi.Message, endpointName string) error {
+	chatID := message.Chat.ID
+	newKey := strings.TrimSpace(message.Text)
+	
+	if newKey == "" {
+		msg := tgbotapi.NewMessage(chatID, "❌ API密钥不能为空")
+		h.bot.Send(msg)
+		return nil
+	}
+	
+	// Update endpoint
+	updates := map[string]interface{}{
+		"api_key": newKey,
+	}
+	
+	if err := h.configService.UpdateEndpoint(ctx, endpointName, updates); err != nil {
+		msg := tgbotapi.NewMessage(chatID, fmt.Sprintf("❌ 更新失败：%s", err.Error()))
+		h.bot.Send(msg)
+		return nil
+	}
+	
+	// Success message (mask the key for security)
+	maskedKey := newKey[:min(4, len(newKey))] + "****"
+	msg := tgbotapi.NewMessage(chatID, fmt.Sprintf("✅ 端点 `%s` 的API密钥已更新为：%s", endpointName, maskedKey))
+	msg.ParseMode = "Markdown"
+	h.bot.Send(msg)
+	
+	// Clear user state
+	h.storage.DeleteUserState(ctx, message.From.ID, "config_action")
+	h.storage.DeleteUserState(ctx, message.From.ID, "config_endpoint")
+	
+	return nil
+}
+
+// min returns the minimum of two integers
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }

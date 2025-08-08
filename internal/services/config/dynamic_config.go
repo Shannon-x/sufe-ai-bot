@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	"github.com/cf-ai-tgbot-go/internal/config"
-	"github.com/cf-ai-tgbot-go/internal/models"
 	"github.com/go-redis/redis/v8"
 	"github.com/sirupsen/logrus"
 )
@@ -133,7 +132,7 @@ func (s *DynamicConfigService) UpdateEndpoint(ctx context.Context, endpointName 
 }
 
 // AddModelToEndpoint adds a model to an endpoint
-func (s *DynamicConfigService) AddModelToEndpoint(ctx context.Context, endpointName string, model config.Model) error {
+func (s *DynamicConfigService) AddModelToEndpoint(ctx context.Context, endpointName string, model config.ModelInfo) error {
 	endpoints, err := s.getDynamicEndpoints(ctx)
 	if err != nil && err != redis.Nil {
 		return err
